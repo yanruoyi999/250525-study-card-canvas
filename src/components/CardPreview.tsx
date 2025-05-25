@@ -1,78 +1,136 @@
 
 import React, { forwardRef } from "react";
+import { Book, Beaker, Calendar } from "lucide-react";
 import { ColorScheme } from "./ColorSchemeSelect";
 
-const bgMap: Record<ColorScheme, string> = {
-  blue: "from-blue-400 to-blue-200",
-  green: "from-green-400 to-green-200",
-  pink: "from-pink-400 to-pink-200",
+// Morandi主色与分块叠加&点缀色
+const schemeMap: Record<ColorScheme, {
+  gradient: string, // 主bg
+  overlay: string,  // 分块叠加
+  keypoint: string, // 重点
+  text: string,     // 主文字
+  pointText: string // 重点文字
+}> = {
+  blue: {
+    gradient: "from-[#aac9e5] to-[#e3eaf5]", // Morandi蓝灰
+    overlay: "bg-blue-100/60",
+    keypoint: "bg-[#63a2c8]/80", // 较饱和Morandi蓝
+    text: "text-[#1e3753]",
+    pointText: "text-[#17507a] font-semibold"
+  },
+  green: {
+    gradient: "from-[#b8d2c1] to-[#e1f0e5]",
+    overlay: "bg-green-100/60",
+    keypoint: "bg-[#83bda4]/80",
+    text: "text-[#215949]",
+    pointText: "text-[#155544] font-semibold"
+  },
+  pink: {
+    gradient: "from-[#cbb9c6] to-[#f3e8ef]",
+    overlay: "bg-pink-100/60",
+    keypoint: "bg-[#c885a2]/80",
+    text: "text-[#6e2f4c]",
+    pointText: "text-[#913b6c] font-semibold"
+  },
 };
 
-const textColMap: Record<ColorScheme, string> = {
-  blue: "text-blue-900",
-  green: "text-green-900",
-  pink: "text-pink-900",
-};
+// 标题衬线体（兼容中英文）
+const titleFont = `font-serif font-bold text-[1.55rem] sm:text-2xl tracking-tight`;
+// 正文/摘抄无衬线
+const bodyFont = `font-sans`;
+const noteFont = `font-sans text-sm sm:text-base`;
 
+// 学科主题检测→图标
+function getIcon(subject?: string) {
+  if (!subject) return null;
+  const s = subject.toLowerCase();
+  if (s.match(/文|history|历|日/i)) return <Calendar size={22} strokeWidth={2.2} className="mr-1.5 sm:mr-2 opacity-70"/>;
+  if (s.match(/理|数|算|科|化|物|beaker|science|化学|实验/i)) return <Beaker size={22} strokeWidth={2.2} className="mr-1.5 sm:mr-2 opacity-70"/>;
+  if (s.match(/英|book|单词|文献|书|词|语|language|reading|writing/i)) return <Book size={22} strokeWidth={2.1} className="mr-1.5 sm:mr-2 opacity-70"/>;
+  return null;
+}
+
+// 增强样式下的卡片
 type Highlight = { content: string };
 
 type Props = {
   subject: string;
   date: string;
-  highlights?: Highlight[]; // 兼容旧数据
-  content?: string;         // 兼容旧数据
+  highlights?: Highlight[];
+  content?: string;
   scheme: ColorScheme;
 };
 
-// 允许 ref 用于 html2canvas 捕获
+// forwardRef供截图
 const CardPreview = forwardRef<HTMLDivElement, Props>(
   ({ subject, date, highlights, content, scheme }, ref) => {
-    // 兼容旧 content 字段
+    const {
+      gradient, overlay, keypoint, text, pointText
+    } = schemeMap[scheme];
     const cards = highlights && highlights.length
       ? highlights.filter(h => !!h.content)
       : content
         ? [{ content }]
         : [];
 
+    // 额外笔记区，允许未来拓展
+    // 这里只演示重点和主题
+    const icon = getIcon(subject);
+
     return (
       <div
         ref={ref}
-        className={`
-          w-[330px] sm:w-[410px] min-h-[220px] py-6 px-5 mx-auto rounded-3xl shadow-xl
-          bg-gradient-to-br ${bgMap[scheme]} ${textColMap[scheme]}
-          flex flex-col gap-3 justify-between transition-all duration-300
-        `}
+        className={`w-[335px] sm:w-[420px] min-h-[240px] p-5 sm:py-7 sm:px-7 mx-auto rounded-3xl shadow-2xl
+          bg-gradient-to-br ${gradient} ${text} flex flex-col gap-4 justify-between
+          transition-all duration-300 relative ring-2 ring-white/10 hover:scale-[1.012] hover:shadow-2xl animate-fade-in`}
         style={{ fontFamily: "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif", letterSpacing: ".01em" }}
       >
-        <div>
-          <div className="text-xs font-semibold opacity-75">{date}</div>
-          <div className="text-xl sm:text-2xl font-bold my-2 leading-tight">{subject || "学习主题"}</div>
+        {/* 顶部-主题与日期 */}
+        <div className={`flex items-center pb-1.5 pl-1`}>
+          {icon}
+          <div className={`${titleFont} leading-snug mr-2 select-text`}>
+            {subject || "学习主题"}
+          </div>
+          <div className="ml-auto text-xs opacity-60 font-mono tracking-wide pr-1">{date}</div>
         </div>
-        <div className="flex-1 flex flex-col gap-2 items-stretch">
-          {cards.length ? (
-            <ul className="space-y-3">
+        {/* 分块内容：重点区 */}
+        <section
+          className={`
+            ${overlay} rounded-2xl shadow-inner px-3 sm:px-4 py-3 flex-1 flex flex-col gap-2 transition-all
+            border-l-4 border-white/50 backdrop-blur-[2.5px] animate-fade-in
+          `}
+        >
+          <div className="flex items-center mb-1">
+            <span className="text-sm sm:text-base font-serif font-semibold opacity-85 select-none"
+              style={{ letterSpacing: ".02em" }}>
+              重点 Key Points
+            </span>
+          </div>
+          {cards.length > 0 ? (
+            <ul className="space-y-2">
               {cards.map((h, idx) => (
                 <li
                   key={idx}
-                  className="bg-white/70 rounded-xl px-3 py-2 shadow flex items-start text-base sm:text-lg leading-snug whitespace-pre-line break-words border border-white/80"
+                  className={`${keypoint} rounded-xl px-2.5 py-2 flex items-start shadow
+                    whitespace-pre-line break-words ${pointText} border-l-4 border-white/40
+                    hover:scale-[1.01] transition-all backdrop-blur-[1.2px]`}
                   style={{
-                    borderLeft: "4px solid rgba(30,64,175,.18)",
-                    backdropFilter: "blur(1.5px)",
                     fontFamily: "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,sans-serif",
+                    letterSpacing: ".01em"
                   }}
                 >
-                  <span className="mr-2 font-bold text-blue-400 select-none">{idx+1}.</span>
-                  <span className="flex-1">{h.content || ""}</span>
+                  <span className="mr-1.5 font-bold text-base sm:text-lg text-black/10 select-none"
+                    style={{ textShadow: "0 1px 6px #fff4" }}>{idx + 1}.</span>
+                  <span className="flex-1 block">{h.content || ""}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="text-base sm:text-lg leading-snug whitespace-pre-line break-words italic text-gray-600/70">
-              在此填写您的学习内容…
-            </div>
+            <div className="opacity-60 italic text-gray-500/70">在此填写您的学习内容…</div>
           )}
-        </div>
-        <div className="pt-4 text-xs text-right opacity-60 font-normal font-mono">
+        </section>
+        {/* 底部-出处 */}
+        <div className={`pt-2 text-xs text-right opacity-65 font-mono`}>
           由「生成学习卡片」小站制作
         </div>
       </div>
@@ -81,3 +139,4 @@ const CardPreview = forwardRef<HTMLDivElement, Props>(
 );
 
 export default CardPreview;
+
