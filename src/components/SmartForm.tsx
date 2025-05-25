@@ -368,10 +368,28 @@ export default function SmartForm() {
       onSubmit={handleGenerateCard}
       autoComplete="off"
     >
+      {/* 页面标题区域 */}
+      <div className="text-center mb-2">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" className="drop-shadow-sm">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            卡片生成器
+          </h1>
+        </div>
+        <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+          轻松制作精美学习卡片，支持多种尺寸和配色方案
+          <span className="block text-xs text-gray-400 mt-1">免费使用 · 数据本地存储</span>
+        </p>
+      </div>
+      
       <UserProfile userInfo={userInfo} onUserInfoChange={setUserInfo} />
       
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm mb-1">学习主题</label>
+        <label className="font-medium text-sm mb-1">📝 标题</label>
         <input
           className="rounded-lg border-gray-200 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
           value={subject}
@@ -382,7 +400,7 @@ export default function SmartForm() {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm mb-1">学习日期</label>
+        <label className="font-medium text-sm mb-1">📅 日期</label>
         <input
           type="date"
           className="rounded-lg border-gray-200 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
@@ -392,7 +410,7 @@ export default function SmartForm() {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm mb-1">重点/摘抄内容 <span className="text-xs text-gray-500">(可拖拽排序)</span></label>
+        <label className="font-medium text-sm mb-1">📝 重点/摘抄内容 <span className="text-xs text-gray-500">(可拖拽排序)</span></label>
         <div className="flex flex-col gap-3">
           <DndContext 
             sensors={sensors}
@@ -449,7 +467,7 @@ export default function SmartForm() {
           active:scale-95 active:bg-gray-900 ring-2 ring-black/5 ${loading ? "opacity-70 cursor-not-allowed" : ""}
         `}
       >
-        {loading ? "正在生成…" : "生成学习卡片并保存到手机"}
+        {loading ? "正在生成…" : "卡片生成"}
       </button>
       
       <CardHistory 

@@ -364,7 +364,7 @@ const CardPreview = forwardRef<HTMLDivElement, Props>(
           
           {/* 制作出处 */}
           <div className={`text-xs ${config.isVertical ? 'text-center' : 'text-right'} opacity-65 font-mono`}>
-            由「生成学习卡片」小站制作
+            由「卡片生成器」小站制作
           </div>
         </div>
       </div>
