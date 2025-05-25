@@ -5,21 +5,23 @@ import CardPreview from "./CardPreview";
 import ColorSchemeSelect, { ColorScheme } from "./ColorSchemeSelect";
 import { toast } from "@/hooks/use-toast";
 
+type Highlight = { content: string };
+
 export default function SmartForm() {
   const [subject, setSubject] = useState("");
   const [date, setDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
   });
-  const [content, setContent] = useState("");
+  const [highlights, setHighlights] = useState<Highlight[]>([{ content: "" }]);
   const [scheme, setScheme] = useState<ColorScheme>("blue");
   const previewRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
 
   // 存localStorage
   React.useEffect(() => {
-    localStorage.setItem("lastCard", JSON.stringify({subject, date, content, scheme}));
-  }, [subject, date, content, scheme]);
+    localStorage.setItem("lastCard", JSON.stringify({subject, date, highlights, scheme}));
+  }, [subject, date, highlights, scheme]);
 
   // 加载历史
   React.useEffect(() => {
@@ -29,37 +31,28 @@ export default function SmartForm() {
         const obj = JSON.parse(raw);
         setSubject(obj.subject || "");
         setDate(obj.date || "");
-        setContent(obj.content || "");
+        setHighlights(obj.highlights && Array.isArray(obj.highlights) ? obj.highlights : [{ content: "" }]);
         setScheme(obj.scheme || "blue");
       } catch {}
     }
   }, []);
 
-  // mock：用大模型自动润色（可后续接API，支持变量key）
-  async function enhanceContent(subject: string, date: string, content: string) {
-    // 这里预留 apiKey 变量入口，实际安全应从supabase secret或UI输入
-    // const apiKey = "sk-你的APIKey";
-    // const r = await fetch("https://api.gptsapi.net/v1/chat/completions", { ... })
-    // setContent(await r.json());
-    // demo 直接输出
-    return content;
+  // mock：用大模型自动润色（预留）
+  async function enhanceContent(subject: string, date: string, highlights: Highlight[]) {
+    // 预留API连大模型，暂直接返回原内容
+    return highlights;
   }
 
   async function handleGenerateCard(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      // content润色: 实际可接AI
-      const improvedContent = await enhanceContent(subject, date, content);
+      const improved = await enhanceContent(subject, date, highlights);
 
-      // 用html2canvas生成图片
       if (previewRef.current) {
-        // 1. 动态设好内容再截图
-        // 2. 额外：休眠以确保样式渲染完毕
         await new Promise(res => setTimeout(res, 300));
         const canvas = await html2canvas(previewRef.current, { useCORS: true, backgroundColor: null, scale: 2 });
         const dataURL = canvas.toDataURL("image/png");
-        // 自动下载到本地
         const link = document.createElement("a");
         link.href = dataURL;
         link.download = `${subject || "学习卡片"}.png`;
@@ -80,9 +73,21 @@ export default function SmartForm() {
     }
   }
 
+  function handleHighlightChange(idx: number, val: string) {
+    setHighlights(hs =>
+      hs.map((item, i) => (i === idx ? { ...item, content: val } : item))
+    );
+  }
+  function handleAddHighlight() {
+    setHighlights(hs => [...hs, { content: "" }]);
+  }
+  function handleRemoveHighlight(idx: number) {
+    setHighlights(hs => hs.length > 1 ? hs.filter((_, i) => i !== idx) : hs);
+  }
+
   return (
     <form
-      className="w-full max-w-[360px] sm:max-w-[470px] mx-auto px-3 py-4 flex flex-col gap-6"
+      className="w-full max-w-[380px] sm:max-w-[520px] mx-auto px-3 py-4 flex flex-col gap-6"
       onSubmit={handleGenerateCard}
       autoComplete="off"
     >
@@ -108,19 +113,44 @@ export default function SmartForm() {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <label className="font-medium text-sm mb-1">学习内容</label>
-        <textarea
-          className="rounded-lg border-gray-200 px-3 py-2 min-h-[80px] text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white resize-none"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          required
-          placeholder="请填写今日重点、难点或自定义内容…"
-          maxLength={128}
-        />
+        <label className="font-medium text-sm mb-1">重点/摘抄内容</label>
+        <div className="flex flex-col gap-3">
+          {highlights.map((hl, i) => (
+            <div className="flex gap-1 items-start" key={i}>
+              <textarea
+                className="rounded-lg border-gray-200 px-3 py-2 min-h-[54px] text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white resize-none flex-1"
+                value={hl.content}
+                onChange={e => handleHighlightChange(i, e.target.value)}
+                required
+                placeholder={`第${i+1}条内容…`}
+                maxLength={160}
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveHighlight(i)}
+                className={`ml-1 px-2 py-1 rounded text-sm font-semibold bg-red-50 text-red-500 hover:bg-red-100 transition shadow border border-transparent ${highlights.length === 1 ? "opacity-30 cursor-not-allowed" : ""}`}
+                disabled={highlights.length === 1}
+                tabIndex={-1}
+                title="删除该条"
+              >✕</button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddHighlight}
+            className="mt-1 w-full text-blue-600 rounded-xl bg-blue-50 hover:bg-blue-100 py-2 font-bold flex items-center justify-center gap-1 border"
+          >+ 新增重点/摘抄</button>
+        </div>
       </div>
       <ColorSchemeSelect value={scheme} onChange={setScheme} />
       <div className="my-6 flex justify-center">
-        <CardPreview subject={subject} date={date} content={content} scheme={scheme} ref={previewRef} />
+        <CardPreview
+          subject={subject}
+          date={date}
+          highlights={highlights}
+          scheme={scheme}
+          ref={previewRef}
+        />
       </div>
       <button
         type="submit"
